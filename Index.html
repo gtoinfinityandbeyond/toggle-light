@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Reference · Vol. 3 · Toggle</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Inject CSS -->
+<?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
+
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-logo">Operations AI</div>
+    <div class="header-sub">Dashboard Reference &middot; Vol. 3</div>
+  </div>
+  <div class="header-right">
+    <div class="header-vol">Vol. 3 / Toggle</div>
+    <div class="toggle-btn" onclick="toggleTheme()">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span id="ticon">🌙</span>
+      <span class="toggle-lbl" id="tlbl">Dark</span>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- 01 KPI -->
+  <div class="sdiv"><span class="snum">01 —</span><span class="slbl">KPI Stat Cards</span><div class="sline"></div><span class="stag">Summary Metrics</span></div>
+  <div class="g4">
+    <div class="kc a"><div class="ki">⚡</div><div class="kl">Total AI Interactions</div><div class="kv">48,320</div><div class="kch up">↑ 12.4% vs last period</div><div class="korb"></div></div>
+    <div class="kc b"><div class="ki">👥</div><div class="kl">Active Users</div><div class="kv">74</div><div class="kch up">↑ 8 new this month</div><div class="korb"></div></div>
+    <div class="kc c"><div class="ki">📊</div><div class="kl">Avg Weekly Usage</div><div class="kv">483</div><div class="kch flat">→ Stable trend</div><div class="korb"></div></div>
+    <div class="kc d"><div class="ki">🎯</div><div class="kl">Zero Usage Staff</div><div class="kv">26</div><div class="kch down">↓ 3 fewer this week</div><div class="korb"></div></div>
+  </div>
+
+  <!-- 02 LINE + AREA -->
+  <div class="sdiv"><span class="snum">02 —</span><span class="slbl">Line &amp; Area Charts</span><div class="sline"></div><span class="stag">Trends Over Time</span></div>
+  <div class="g2">
+    <div class="board"><div class="bh"><div><div class="bt">Weekly Usage Trend</div><div class="bs">Total + avg per user · dual axis line</div></div><span class="btag tp">Line</span></div><div class="bb"><div class="cw h240"><canvas id="c_line"></canvas></div></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">Cumulative Usage by Category</div><div class="bs">Stacked area — High / Medium / Low</div></div><span class="btag tv">Area</span></div><div class="bb"><div class="cw h240"><canvas id="c_area"></canvas></div></div></div>
+  </div>
+
+  <!-- 03 BAR -->
+  <div class="sdiv"><span class="snum">03 —</span><span class="slbl">Bar Charts</span><div class="sline"></div><span class="stag">Comparisons</span></div>
+  <div class="g2">
+    <div class="board"><div class="bh"><div><div class="bt">Usage by Job Title</div><div class="bs">Horizontal — total interactions per role</div></div><span class="btag tpk">H-Bar</span></div><div class="bb"><div class="cw h320"><canvas id="c_hbar"></canvas></div></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">Weekly App Usage</div><div class="bs">Vertical — interactions per app per week</div></div><span class="btag tc">V-Bar</span></div><div class="bb"><div class="cw h320"><canvas id="c_vbar"></canvas></div></div></div>
+  </div>
+
+  <!-- 04 STACKED + COMBO -->
+  <div class="sdiv"><span class="snum">04 —</span><span class="slbl">Stacked Bar &amp; Combo</span><div class="sline"></div><span class="stag">Composition + Dual Axis</span></div>
+  <div class="g2">
+    <div class="board"><div class="bh"><div><div class="bt">Monthly Usage by Category</div><div class="bs">Stacked — High / Medium / Low / Zero</div></div><span class="btag tv">Stacked</span></div><div class="bb"><div class="cw h280"><canvas id="c_stack"></canvas></div></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">Volume vs Active Users</div><div class="bs">Combo — bars for volume, line for user count</div></div><span class="btag tg">Combo</span></div><div class="bb"><div class="cw h280"><canvas id="c_combo"></canvas></div></div></div>
+  </div>
+
+  <!-- 05 PIE + DONUT + SCATTER -->
+  <div class="sdiv"><span class="snum">05 —</span><span class="slbl">Pie, Donut &amp; Scatter</span><div class="sline"></div><span class="stag">Distribution &amp; Correlation</span></div>
+  <div class="g3">
+    <div class="board"><div class="bh"><div><div class="bt">Usage Share by App</div><div class="bs">Pie — proportion of total</div></div><span class="btag ta">Pie</span></div><div class="bb"><div class="cw h240"><canvas id="c_pie"></canvas></div></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">User Category Split</div><div class="bs">Donut — High / Medium / Low / Zero</div></div><span class="btag tc">Donut</span></div><div class="bb"><div class="cw h240"><canvas id="c_donut"></canvas></div></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">Active Days vs Usage</div><div class="bs">Scatter — correlation per employee</div></div><span class="btag tr2">Scatter</span></div><div class="bb"><div class="cw h240"><canvas id="c_scatter"></canvas></div></div></div>
+  </div>
+
+  <!-- 06 GAUGE + PROGRESS -->
+  <div class="sdiv"><span class="snum">06 —</span><span class="slbl">Gauge &amp; Progress</span><div class="sline"></div><span class="stag">Goal Tracking</span></div>
+  <div class="g21">
+    <div class="board"><div class="bh"><div><div class="bt">Adoption Progress by Team</div><div class="bs">Progress bars — % actively using AI</div></div><span class="btag tg">Progress</span></div><div class="bb" id="progWrap"></div></div>
+    <div class="board"><div class="bh"><div><div class="bt">Overall Adoption Rate</div><div class="bs">Gauge — 74% of staff active</div></div><span class="btag tp">Gauge</span></div><div class="bb">
+      <div class="gw">
+        <canvas id="c_gauge" width="220" height="130"></canvas>
+        <div class="gval">74%</div>
+        <div class="glbl">Adoption Rate</div>
+        <div class="glegs">
+          <div class="gleg"><div class="gdot" style="background:var(--green)"></div>Active</div>
+          <div class="gleg"><div class="gdot" style="background:var(--surface3)"></div>Inactive</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 07 HEATMAP -->
+  <div class="sdiv"><span class="snum">07 —</span><span class="slbl">Heatmap</span><div class="sline"></div><span class="stag">Density Matrix</span></div>
+  <div class="g1">
+    <div class="board"><div class="bh"><div><div class="bt">App Usage by Job Title — Heatmap</div><div class="bs">Intensity = total interactions · Hover for value</div></div><span class="btag ta">Heatmap</span></div><div class="bb"><div id="hmWrap"></div></div></div>
+  </div>
+
+  <!-- 08 TABLE -->
+  <div class="sdiv"><span class="snum">08 —</span><span class="slbl">Sortable Data Table</span><div class="sline"></div><span class="stag">Interactive Table</span></div>
+  <div class="g1">
+    <div class="board"><div class="bh"><div><div class="bt">Employee AI Usage Leaderboard</div><div class="bs">Click any column header to sort ascending or descending</div></div><span class="btag tp">Sortable</span></div><div class="bb">
+      <div class="to">
+        <table class="tbl">
+          <thead><tr>
+            <th onclick="srt(0)" id="th0"># <span class="si">↕</span></th>
+            <th onclick="srt(1)" id="th1">Name <span class="si">↕</span></th>
+            <th onclick="srt(2)" id="th2">Job Title <span class="si">↕</span></th>
+            <th onclick="srt(3)" id="th3">Total <span class="si">↕</span></th>
+            <th onclick="srt(4)" id="th4">Category <span class="si">↕</span></th>
+            <th onclick="srt(5)" id="th5">Top App <span class="si">↕</span></th>
+            <th>Bar</th>
+          </tr></thead>
+          <tbody id="tbod"></tbody>
+        </table>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<div class="footer">Operations Analytics · Dashboard Reference Vol. 3 · Dark / Light Toggle</div>
+
+<!-- Inject JavaScript -->
+<?!= HtmlService.createHtmlOutputFromFile('Javascript').getContent(); ?>
+
+</body>
+</html>
