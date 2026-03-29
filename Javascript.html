@@ -1,0 +1,350 @@
+<script>
+// ── DATA GENERATION ──
+const WEEKS=['6 Jan','13 Jan','20 Jan','27 Jan','3 Feb','10 Feb','17 Feb','24 Feb','3 Mar','10 Mar','17 Mar','24 Mar'];
+const MONTHS=['January','February','March'];
+const APPS=['Gmail','Docs','Sheets','Slides','Drive','Meet','Studio'];
+const TITLES=['Ops Manager','Deputy Ops Mgr','Ops Analyst','Ops Coordinator','Process Specialist','Support Officer','Data Analyst','Business Analyst','Compliance Officer','QA Analyst','Reporting Analyst','Ops Administrator','Project Coordinator','Systems Analyst','Performance Analyst'];
+const CNTS=[1,1,12,10,6,10,8,7,5,6,8,8,8,8,8];
+const NP=[['James','Johnson'],['Sarah','Kim'],['Marcus','Okafor'],['Emily','Chen'],['Carlos','Rivera'],['Aisha','Williams'],['Tom','Nguyen'],['Priya','Patel'],['Ben','Brown'],['Leah','Torres'],['Omar','Hassan'],['Fiona','Lee'],['David','Scott'],['Nina','Ruiz'],['Jake','Adams'],['Zoe','Clarke'],['Chris','Morris'],['Maya','Evans'],['Ryan','Baker'],['Amy','Hall'],['Daniel','Wilson'],['Hannah','Taylor'],['Luke','Davies'],['Grace','Hughes'],['Aaron','Roberts'],['Chloe','Walker'],['Nathan','Wright'],['Sophie','White'],['Adam','Thompson'],['Laura','Martin']];
+
+let seed=42;
+const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+const rndI=(a,b)=>Math.floor(rng()*(b-a+1))+a;
+
+// Build employees
+const employees=[],profiles=[];
+TITLES.forEach((t,ti)=>{
+  for(let i=0;i<CNTS[ti]&&employees.length<100;i++){
+    const n=NP[employees.length%NP.length];
+    employees.push({name:n[0]+' '+n[1],title:t,email:n[0].toLowerCase()+'.'+n[1].toLowerCase()+'@co.com'});
+    const l=employees.length;
+    profiles.push(l<=10?'zero':l<=20?'barely':l<=50?'low':l<=75?'medium':'high');
+  }
+});
+
+// Build weekly data
+const weekData=WEEKS.map((_,wi)=>employees.map((e,ei)=>{
+  const p=profiles[ei];
+  const apps=APPS.map(()=>{
+    if(p==='zero') return 0;
+    if(p==='barely') return rng()<0.7?0:rndI(1,8);
+    if(p==='low') return rng()<0.3?0:rndI(1,12);
+    if(p==='medium') return rng()<0.1?0:rndI(5,18);
+    return rng()<0.05?0:rndI(10,28);
+  });
+  return{...e,apps,total:apps.reduce((s,v)=>s+v,0)};
+}));
+
+const allRows=weekData.flat();
+const empTot={};
+employees.forEach(e=>{empTot[e.email]=allRows.filter(r=>r.email===e.email).reduce((s,r)=>s+r.total,0);});
+
+const cat=t=>t>=75?'High':t>=50?'Medium':t>0?'Low':'Zero';
+const topApp=em=>{
+  const s=APPS.map((_,i)=>allRows.filter(r=>r.email===em).reduce((s,r)=>s+r.apps[i],0));
+  const mx=Math.max(...s);
+  return mx===0?'—':APPS[s.indexOf(mx)];
+};
+const fmt=n=>Math.round(n).toLocaleString();
+
+// ── THEME HELPERS ──
+const DARK_CA=['#9b1fe8','#e8006e','#00d4e8','#00e8a0','#f5a623','#f87171','#a78bfa'];
+const LITE_CA=['#7a14c4','#c4005a','#0098b0','#00a870','#b87800','#d03030','#6a50e0'];
+const isDark=()=>document.documentElement.getAttribute('data-theme')==='dark';
+const CV=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const CA=()=>isDark()?DARK_CA:LITE_CA;
+const PB=()=>isDark()?'#080612':'#ffffff';
+
+// ── THEME TOGGLE ──
+function toggleTheme(){
+  const dark=isDark();
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  document.getElementById('ticon').textContent=dark?'☀️':'🌙';
+  document.getElementById('tlbl').textContent=dark?'Light':'Dark';
+  setTimeout(()=>{ rebuildAll(); },50);
+}
+
+// ── CHART REGISTRY ──
+Chart.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+const reg={};
+function killAll(){Object.keys(reg).forEach(id=>{if(reg[id]){reg[id].destroy();delete reg[id];}});}
+
+// Chart.js shared option builders
+const tt=()=>({backgroundColor:CV('--tt-bg'),borderColor:CV('--tt-border'),borderWidth:1,titleColor:CV('--tt-title'),bodyColor:CV('--tt-body'),padding:10,cornerRadius:8});
+const sc=c=>({ticks:{color:c||CV('--chart-tick'),font:{size:10}},grid:{color:CV('--chart-grid')}});
+const leg=()=>({labels:{color:CV('--chart-legend'),font:{size:11},boxWidth:10,padding:12}});
+
+// ── BUILD ALL CHARTS ──
+function rebuildAll(){
+  killAll();
+  const ca=CA();
+  const pb=PB();
+
+  // ── LINE CHART ──
+  {
+    const tot=WEEKS.map((_,wi)=>weekData[wi].reduce((s,r)=>s+r.total,0));
+    const avg=tot.map((t,i)=>t/weekData[i].length);
+    reg.line=new Chart(document.getElementById('c_line'),{
+      type:'line',
+      data:{labels:WEEKS,datasets:[
+        {label:'Total Usage',data:tot,borderColor:ca[0],backgroundColor:ca[0]+'22',tension:0.4,pointRadius:4,pointHoverRadius:8,pointBackgroundColor:ca[0],pointBorderColor:pb,pointBorderWidth:2,borderWidth:2.5,fill:true,yAxisID:'y'},
+        {label:'Avg per User',data:avg,borderColor:ca[1],backgroundColor:'transparent',tension:0.4,pointRadius:4,pointHoverRadius:8,pointBackgroundColor:ca[1],pointBorderColor:pb,pointBorderWidth:2,borderWidth:2,borderDash:[5,3],yAxisID:'y1'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:leg(),tooltip:tt()},
+        scales:{
+          x:sc(),
+          y:Object.assign(sc(ca[0]),{position:'left',ticks:Object.assign(sc(ca[0]).ticks,{callback:v=>fmt(v)})}),
+          y1:Object.assign(sc(ca[1]),{position:'right',grid:{drawOnChartArea:false},ticks:Object.assign(sc(ca[1]).ticks,{callback:v=>v.toFixed(1)})})
+        }}
+    });
+  }
+
+  // ── AREA CHART ──
+  {
+    const cats=[{c:'High',i:0},{c:'Medium',i:2},{c:'Low',i:4}];
+    reg.area=new Chart(document.getElementById('c_area'),{
+      type:'line',
+      data:{labels:WEEKS,datasets:cats.map(d=>({
+        label:d.c,
+        data:WEEKS.map((_,wi)=>weekData[wi].filter(r=>cat(empTot[r.email])===d.c).reduce((s,r)=>s+r.total,0)),
+        borderColor:ca[d.i],backgroundColor:ca[d.i]+'28',tension:0.4,
+        pointRadius:3,pointHoverRadius:7,pointBackgroundColor:ca[d.i],
+        pointBorderColor:pb,pointBorderWidth:2,borderWidth:2,fill:true
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:leg(),tooltip:tt()},
+        scales:{x:sc(),y:Object.assign(sc(),{ticks:Object.assign(sc().ticks,{callback:v=>fmt(v)})})}}
+    });
+  }
+
+  // ── HORIZONTAL BAR ──
+  {
+    const tt2={};
+    allRows.forEach(r=>{tt2[r.title]=(tt2[r.title]||0)+r.total;});
+    const sorted=Object.entries(tt2).sort((a,b)=>b[1]-a[1]);
+    reg.hbar=new Chart(document.getElementById('c_hbar'),{
+      type:'bar',
+      data:{labels:sorted.map(x=>x[0]),datasets:[{
+        label:'Total Usage',data:sorted.map(x=>x[1]),
+        backgroundColor:sorted.map((_,i)=>ca[i%ca.length]+'bb'),
+        borderColor:sorted.map((_,i)=>ca[i%ca.length]),
+        borderWidth:1,borderRadius:6,borderSkipped:false
+      }]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:tt()},
+        scales:{x:Object.assign(sc(),{ticks:Object.assign(sc().ticks,{callback:v=>fmt(v)})}),y:sc()}}
+    });
+  }
+
+  // ── VERTICAL BAR ──
+  {
+    const l6=WEEKS.slice(-6);
+    reg.vbar=new Chart(document.getElementById('c_vbar'),{
+      type:'bar',
+      data:{labels:l6,datasets:APPS.map((app,i)=>({
+        label:app,
+        data:l6.map(w=>{const wi=WEEKS.indexOf(w);return weekData[wi].reduce((s,r)=>s+r.apps[i],0);}),
+        backgroundColor:ca[i]+'bb',borderColor:ca[i],borderWidth:1,borderRadius:4,borderSkipped:false
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:leg(),tooltip:tt()},
+        scales:{x:sc(),y:Object.assign(sc(),{ticks:Object.assign(sc().ticks,{callback:v=>fmt(v)})})}}
+    });
+  }
+
+  // ── STACKED BAR ──
+  {
+    const cd=[{c:'High',i:0},{c:'Medium',i:2},{c:'Low',i:4},{c:'Zero',i:6}];
+    reg.stack=new Chart(document.getElementById('c_stack'),{
+      type:'bar',
+      data:{labels:MONTHS,datasets:cd.map(d=>({
+        label:d.c,
+        data:MONTHS.map(m=>allRows.filter(r=>r.week.includes(m.slice(0,3))&&cat(empTot[r.email])===d.c).reduce((s,r)=>s+r.total,0)),
+        backgroundColor:ca[d.i]+'bb',borderColor:ca[d.i],borderWidth:1
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:leg(),tooltip:tt()},
+        scales:{x:Object.assign(sc(),{stacked:true}),y:Object.assign(sc(),{stacked:true,ticks:Object.assign(sc().ticks,{callback:v=>fmt(v)})})}}
+    });
+  }
+
+  // ── COMBO CHART ──
+  {
+    const tot=WEEKS.map((_,wi)=>weekData[wi].reduce((s,r)=>s+r.total,0));
+    const act=WEEKS.map((_,wi)=>weekData[wi].filter(r=>r.total>0).length);
+    reg.combo=new Chart(document.getElementById('c_combo'),{
+      type:'bar',
+      data:{labels:WEEKS,datasets:[
+        {type:'bar',label:'Total Usage',data:tot,backgroundColor:ca[0]+'bb',borderColor:ca[0],borderWidth:1,borderRadius:4,borderSkipped:false,yAxisID:'y'},
+        {type:'line',label:'Active Users',data:act,borderColor:ca[3],backgroundColor:'transparent',tension:0.4,pointRadius:4,pointHoverRadius:8,pointBackgroundColor:ca[3],pointBorderColor:pb,pointBorderWidth:2,borderWidth:2.5,yAxisID:'y1'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:leg(),tooltip:tt()},
+        scales:{
+          x:sc(),
+          y:Object.assign(sc(ca[0]),{position:'left',ticks:Object.assign(sc(ca[0]).ticks,{callback:v=>fmt(v)})}),
+          y1:Object.assign(sc(ca[3]),{position:'right',grid:{drawOnChartArea:false}})
+        }}
+    });
+  }
+
+  // ── PIE CHART ──
+  {
+    const at=APPS.map((_,i)=>allRows.reduce((s,r)=>s+r.apps[i],0));
+    reg.pie=new Chart(document.getElementById('c_pie'),{
+      type:'pie',
+      data:{labels:APPS,datasets:[{data:at,backgroundColor:ca.map(c=>c+'bb'),borderColor:pb,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{color:CV('--chart-legend'),font:{size:10},boxWidth:10,padding:10}},tooltip:tt()}}
+    });
+  }
+
+  // ── DONUT CHART ──
+  {
+    const cats=['High','Medium','Low','Zero'];
+    const ci=[0,2,4,6];
+    const counts=cats.map(c=>employees.filter((_,i)=>cat(empTot[employees[i].email])===c).length);
+    reg.donut=new Chart(document.getElementById('c_donut'),{
+      type:'doughnut',
+      data:{labels:cats,datasets:[{data:counts,backgroundColor:ci.map(i=>ca[i]+'bb'),borderColor:pb,borderWidth:2,hoverOffset:10}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+        plugins:{legend:{position:'bottom',labels:{color:CV('--chart-legend'),font:{size:10},boxWidth:10,padding:10}},tooltip:tt()}}
+    });
+  }
+
+  // ── SCATTER CHART ──
+  {
+    const pts=employees.slice(0,60).map(e=>{
+      const rows=allRows.filter(r=>r.email===e.email);
+      return{x:Math.round(rows.reduce((s,r)=>s+(r.total>0?1:0),0)/rows.length*50)/10,y:empTot[e.email]};
+    });
+    const cols=pts.map(p=>p.y>=75?ca[0]:p.y>=50?ca[2]:p.y>0?ca[4]:ca[6]);
+    reg.scatter=new Chart(document.getElementById('c_scatter'),{
+      type:'scatter',
+      data:{datasets:[{label:'Employees',data:pts,backgroundColor:cols.map(c=>c+'99'),borderColor:cols,borderWidth:1,pointRadius:5,pointHoverRadius:9}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:Object.assign(tt(),{callbacks:{label:c=>`Active: ${c.parsed.x}d · Usage: ${c.parsed.y}`}})},
+        scales:{
+          x:Object.assign(sc(),{title:{display:true,text:'Avg Active Days/Week',color:CV('--chart-tick'),font:{size:10}}}),
+          y:Object.assign(sc(),{title:{display:true,text:'Total Usage',color:CV('--chart-tick'),font:{size:10}}})
+        }}
+    });
+  }
+
+  // ── GAUGE ──
+  drawGauge();
+
+  // ── HEATMAP ──
+  buildHeatmap();
+
+  // ── TABLE ──
+  renderTable();
+}
+
+// ── GAUGE ──
+function drawGauge(){
+  const cv=document.getElementById('c_gauge');
+  const c=cv.getContext('2d');
+  const dark=isDark();
+  c.clearRect(0,0,220,130);
+  c.beginPath();c.arc(110,118,88,Math.PI,2*Math.PI);
+  c.strokeStyle=dark?'#1a1435':'#ede9e3';
+  c.lineWidth=16;c.lineCap='round';c.stroke();
+  const g=c.createLinearGradient(20,118,200,118);
+  g.addColorStop(0,dark?'#9b1fe8':'#7a14c4');
+  g.addColorStop(1,dark?'#00e8a0':'#00a870');
+  c.beginPath();c.arc(110,118,88,Math.PI,Math.PI+Math.PI*0.74);
+  c.strokeStyle=g;c.lineWidth=16;c.lineCap='round';c.stroke();
+  c.beginPath();c.arc(110,118,7,0,Math.PI*2);
+  c.fillStyle=dark?'#f0eaff':'#1a1814';c.fill();
+}
+
+// ── HEATMAP ──
+function buildHeatmap(){
+  const sT=['Ops Manager','Deputy Ops Mgr','Ops Analyst','Ops Coordinator','Process Spec','Support Officer','Data Analyst','Biz Analyst','Compliance','QA Analyst'];
+  const hd=sT.map(lbl=>APPS.map((_,ai)=>{
+    const kw=lbl.toLowerCase().split(' ')[0];
+    return allRows.filter(r=>r.title.toLowerCase().includes(kw)).reduce((s,r)=>s+r.apps[ai],0);
+  }));
+  const mx=Math.max(...hd.flat())||1;
+  const stops=['h0','h1','h2','h3','h4','h5'];
+  function hc(v){const t=v/mx;const idx=t===0?0:t<0.2?1:t<0.4?2:t<0.6?3:t<0.8?4:5;return{bg:CV('--'+stops[idx]),tx:CV('--'+stops[idx]+'t')};}
+  let h='<div style="overflow-x:auto"><div class="hcols">';
+  APPS.forEach(a=>{h+=`<div class="hcl">${a}</div>`;});
+  h+='</div>';
+  hd.forEach((row,ri)=>{
+    h+=`<div class="hrow"><div class="hrl">${sT[ri]}</div>`;
+    row.forEach((v,ci)=>{
+      const c=hc(v);
+      h+=`<div class="hcell" style="background:${c.bg};color:${c.tx}" title="${sT[ri]} · ${APPS[ci]}: ${fmt(v)}">${v>0?fmt(v):''}</div>`;
+    });
+    h+='</div>';
+  });
+  h+=`<div class="hleg"><span>Low</span>${stops.slice(1).map(s=>`<div style="width:28px;height:10px;background:${CV('--'+s)};border-radius:2px;"></div>`).join('')}<span>High</span></div></div>`;
+  document.getElementById('hmWrap').innerHTML=h;
+}
+
+// ── PROGRESS BARS ──
+function buildProgress(){
+  const teams=[
+    {n:'Operations Analysts',  p:82,  c:'#9b1fe8'},
+    {n:'Data & Business Analysts', p:76, c:'#00d4e8'},
+    {n:'Coordinators',         p:68,  c:'#a78bfa'},
+    {n:'Support Officers',     p:54,  c:'#f5a623'},
+    {n:'Compliance & QA',      p:45,  c:'#e8006e'},
+    {n:'Administrators',       p:38,  c:'#f87171'},
+    {n:'Managers',             p:100, c:'#00e8a0'}
+  ];
+  document.getElementById('progWrap').innerHTML=teams.map(t=>
+    `<div class="pi">
+      <div class="ph"><span class="pn">${t.n}</span><span class="pv">${t.p}%</span></div>
+      <div class="pt"><div class="pf" style="width:${t.p}%;background:${t.c};"></div></div>
+    </div>`
+  ).join('');
+}
+
+// ── SORTABLE TABLE ──
+const te=employees.slice(0,30).map(e=>({
+  name:e.name,title:e.title,
+  total:empTot[e.email]||0,
+  category:cat(empTot[e.email]||0),
+  topApp:topApp(e.email)
+}));
+let sc2=3, sa=false;
+
+function renderTable(){
+  const ca=CA();
+  const sorted=[...te].sort((a,b)=>{
+    const k=['idx','name','title','total','category','topApp'][sc2];
+    if(k==='idx') return sa?te.indexOf(a)-te.indexOf(b):te.indexOf(b)-te.indexOf(a);
+    if(typeof a[k]==='number') return sa?a[k]-b[k]:b[k]-a[k];
+    return sa?a[k].localeCompare(b[k]):b[k].localeCompare(a[k]);
+  });
+  const mT=Math.max(...te.map(e=>e.total))||1;
+  document.getElementById('tbod').innerHTML=sorted.map((e,i)=>{
+    const bc=e.category==='High'?'tbh':e.category==='Medium'?'tbm':e.category==='Low'?'tbl2':'tbz';
+    const bw=Math.round(e.total/mT*100);
+    const bc2=bw>66?ca[0]:bw>33?ca[2]:ca[4];
+    return`<tr>
+      <td style="color:var(--text4);font-size:11px;font-family:'JetBrains Mono',monospace">${i+1}</td>
+      <td style="font-weight:600;color:var(--text)">${e.name}</td>
+      <td style="color:var(--text3);font-size:11px">${e.title}</td>
+      <td style="font-weight:700;color:var(--purple);font-family:'JetBrains Mono',monospace">${fmt(e.total)}</td>
+      <td><span class="tbg ${bc}">${e.category}</span></td>
+      <td style="color:var(--text2)">${e.topApp}</td>
+      <td><div class="bw"><div class="bt2"><div class="bf" style="width:${bw}%;background:${bc2}"></div></div><span style="font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace">${bw}%</span></div></td>
+    </tr>`;
+  }).join('');
+  for(let i=0;i<6;i++){
+    const th=document.getElementById('th'+i);
+    if(th){th.querySelector('.si').textContent=i===sc2?(sa?'↑':'↓'):'↕';th.classList.toggle('sorted',i===sc2);}
+  }
+}
+
+window.srt=function(col){if(sc2===col)sa=!sa;else{sc2=col;sa=false;}renderTable();};
+
+// ── INIT ──
+buildProgress();
+rebuildAll();
+</script>
